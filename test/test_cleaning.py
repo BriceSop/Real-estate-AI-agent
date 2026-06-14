@@ -6,15 +6,16 @@ from pathlib import Path
 import polars as pl
 import pytest
 
-from app.data.cleaning import Bpe, Dvf
-from app.data.utils import load_yaml
-
 # Make the project root importable if tests/ is used.
 CURRENT_DIR = Path(__file__).resolve().parent
 POSSIBLE_ROOTS = [CURRENT_DIR, CURRENT_DIR.parent]
 for root in POSSIBLE_ROOTS:
     if str(root) not in sys.path:
         sys.path.insert(0, str(root))
+
+from app.core.paths import CONFIGS_DIR
+from app.data.cleaning import Bpe, Dvf
+from app.data.utils import load_yaml
 
 #def _load_yaml_config() -> dict:
  #   candidates = [
@@ -30,7 +31,7 @@ for root in POSSIBLE_ROOTS:
 
 @pytest.fixture(scope="session")
 def cfg() -> dict:
-    return load_yaml()
+    return load_yaml(CONFIGS_DIR / "cleaning.yaml")
 
 
 @pytest.fixture

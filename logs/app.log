@@ -98,3 +98,14 @@
 2026-06-14 19:27:29 | DEBUG | app.data.utils:load_data_from_csv:77 | Fichier lu avec succès : 28 lignes, 2 colonnes
 2026-06-14 19:27:29 | INFO | app.data.utils:load_data_from_csv:71 | Lecture du fichier CSV : C:\Users\bradl\Documents\Projets Perso\real-estate-ai-agent\data\bronze\codes_FACILITY_TYPE_BPE.csv
 2026-06-14 19:27:29 | DEBUG | app.data.utils:load_data_from_csv:77 | Fichier lu avec succès : 230 lignes, 2 colonnes
+2026-06-14 19:27:43 | INFO | app.data.cleaning:run_bpe_to_silver:639 | Démarrage de l'upgrade bpe vers silver
+2026-06-14 19:27:43 | INFO | app.data.cleaning:run_bpe_to_silver:642 | Typage des colonnes
+2026-06-14 19:27:43 | INFO | app.data.cleaning:run_bpe_to_silver:646 | Slicing des données
+2026-06-14 19:27:43 | INFO | app.data.cleaning:run_bpe_to_silver:650 | Jointure des noms de domaines
+2026-06-14 19:27:43 | INFO | app.data.cleaning:run_bpe_to_silver:653 | Jointure des noms de sous-domaines
+2026-06-14 19:27:43 | INFO | app.data.cleaning:run_bpe_to_silver:656 | Jointure des noms de types d'équipements
+2026-06-14 19:27:43 | INFO | app.data.cleaning:run_bpe_to_silver:660 | Création d'une colonne code_postal
+2026-06-14 19:27:43 | INFO | app.data.cleaning:run_bpe_to_silver:664 | Renommage des colonnes
+2026-06-14 19:27:43 | INFO | app.data.cleaning:run_bpe_to_silver:667 | Fin de l'upgrade bpe vers silver
+2026-06-14 19:27:46 | INFO | app.data.utils:save_data_to_csv:103 | Sauvegarde des données en fichier CSV : C:\Users\bradl\Documents\Projets Perso\real-estate-ai-agent\data\silver\bpe_silver.csv
+2026-06-14 19:27:46 | DEBUG | app.data.utils:save_data_to_csv:105 | bpe_silver.csv Data successfully saved at C:\Users\bradl\Documents\Projets Perso\real-estate-ai-agent\data\silver

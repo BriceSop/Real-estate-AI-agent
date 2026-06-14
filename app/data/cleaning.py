@@ -75,7 +75,7 @@ class Dvf(Cleaning):
         self.df = self.df.with_columns(
             pl.col(self._cfg["DATE_COLS"]).str.to_date("%Y-%m-%d"),
             pl.col(self._cfg["INT_COLS"]).cast(pl.Int64),
-            pl.col(self._cfg["FLOAT_COLS"]).str.replace_all(",", ".").cast(pl.Float64),
+            pl.col(self._cfg["FLOAT_COLS"]).cast(pl.String).str.replace_all(",", ".").cast(pl.Float64),
         )
 
         return self
