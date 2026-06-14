@@ -171,21 +171,25 @@ class Dvf(Cleaning):
         # Preparing the output dict and rows to impute
         results = []
         rows_to_impute = (self.df
-                          .filter(pl.col("adresse_numero").is_null() 
-                                  & pl.col("longitude").is_not_null() 
-                                  & pl.col("latitude").is_not_null()
-                                  )
-                                  .select(["id_mutation", 
-                                           "longitude", 
-                                           "latitude", 
-                                           "code_postal", 
-                                           "code_commune"])
+                          .filter(
+                              (
+                              pl.col("adresse_numero").is_null() 
+                              | pl.col("adresse_nom_voie").is_null()
+                              ) 
+                              & pl.col("longitude").is_not_null() 
+                              & pl.col("latitude").is_not_null()
+                              )
+                              .select(["id_mutation", 
+                                       "longitude", 
+                                       "latitude", 
+                                       "code_postal", 
+                                       "code_commune"])
                         )
 
         # Iterating over the rows to get address infos
         for row in rows_to_impute.iter_rows(named=True):
             try:
-                geo = Dvf.reverse_geocode_fr(
+                geo = self.reverse_geocode_fr(
                     lon=row["longitude"],
                     lat=row["latitude"],
                     postcode=row["code_postal"],
@@ -214,6 +218,11 @@ class Dvf(Cleaning):
 
                 time.sleep(0.05)
             except Exception:
+                logger.exception("Echec reverse geocoding pour id_mutation={} lon={} lat={}",
+                                 row["id_mutation"], 
+                                 row["longitude"], 
+                                 row["latitude"]
+                                 )
                 results.append({
                     "id_mutation": row["id_mutation"],
                     "street_geocoded": None,
@@ -237,7 +246,7 @@ class Dvf(Cleaning):
             DataFrame to join with dvf data.
         """
         # Dictionary with address infos
-        imputed_rows = Dvf.get_address_imputation(self)
+        imputed_rows = self.get_address_imputation()
 
         # DataFrame containing address infos
         df = pl.DataFrame(imputed_rows)
@@ -267,10 +276,10 @@ class Dvf(Cleaning):
         self : Dvf
             The same object, with self.df updated.
         """
-        geo_df = Dvf.prepare_imputation_df(self)
+        geo_df = self.prepare_imputation_df()
         self.df = self.df.join(geo_df,
                                left_on=["id_mutation","longitude","latitude"],
-                               ight_on=["id_mutation","lon","lat"],
+                               right_on=["id_mutation","lon","lat"],
                                how="left",
                                validate="m:1"
                                 )
@@ -288,9 +297,8 @@ class Dvf(Cleaning):
         """
         # Replacing address infos null values by its imputation if possible
         self.df = self.df.with_columns(
-            pl.when(pl.col("address_inferred_from_coords").is_null())
-            .then(False)
-            .otherwise(True)
+            pl.coalesce([pl.col("address_inferred_from_coords"), 
+                         pl.lit(False)])
             .alias("address_inferred_from_coords")
             ,
             pl.when(pl.col("address_inferred_from_coords") & 
@@ -378,7 +386,7 @@ class Dvf(Cleaning):
         """
         self.df = self.df.with_columns(
             pl.col("adresse_nom_voie")
-            .map_elements(Dvf.normalize_string, return_dtype=pl.String)
+            .map_elements(self.normalize_string, return_dtype=pl.String)
             .alias("adresse_nom_voie")
         )
 
