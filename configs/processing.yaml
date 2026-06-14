@@ -1,0 +1,114 @@
+DVF:
+  FILENAME: dvf.csv
+
+  DATE_COLS: [date_mutation]
+  INT_COLS: [numero_disposition, numero_volume, nombre_lots, nombre_pieces_principales]
+  FLOAT_COLS: [
+    valeur_fonciere, 
+    lot1_surface_carrez, 
+    lot2_surface_carrez, 
+    lot3_surface_carrez, 
+    lot4_surface_carrez, 
+    lot5_surface_carrez, 
+    surface_reelle_bati, 
+    surface_terrain, 
+    longitude, 
+    latitude
+    ]
+  
+  API_URL: https://data.geopf.fr/geocodage/reverse
+
+  ABBREVIATIONS:
+    BOULEVARD: BD
+    PASSAGE: PAS
+    AVENUE: AV
+    IMPASSE: IMP
+    PLACE: PL
+    ROUTE: RTE
+    ALLEE: ALL
+    SQUARE: SQ
+    VILLA: VLA
+    FAUBOURG: FG
+    CHEMIN: CHE
+  
+  COLS_TO_KEEP: [
+    id_mutation, 
+    date_mutation, 
+    numero_disposition, 
+    nature_mutation,
+    valeur_fonciere,
+    adresse_numero,
+    adresse_nom_voie,
+    code_postal,
+    code_commune,
+    nom_commune,
+    code_departement,
+    nombre_lots,
+    type_local,
+    surface_reelle_bati, 
+    nombre_pieces_principales, 
+    address_inferred_from_coords, 
+    is_valeur_fonciere_missing, 
+    is_surface_missing, 
+    is_nombre_pieces_missing
+    ]
+  
+
+BPE:
+  FILENAME: DS_BPE_2024_data.csv
+
+  DATE_COLS: [TIME_PERIOD]
+  INT_COLS: [OBS_VALUE]
+
+  CODE_ARR: [
+    75101,
+    75102,
+    75103,
+    75104,
+    75105,
+    75106,
+    75107,
+    75108,
+    75109,
+    75110,
+    75111,
+    75112,
+    75113,
+    75114,
+    75115,
+    75116,
+    75117,
+    75118,
+    75119,
+    75120
+    ]
+
+    DOM_CODES:
+      RENAME:
+        libelle français: classification_n1
+      KEY: FACILITY_DOM
+
+    SDOM_CODES:
+      RENAME:
+        libelle français: classification_n2
+      KEY: FACILITY_SDOM
+
+    TYPES_CODES:
+      RENAME:
+        libelle français: classification_n3
+      KEY: FACILITY_TYPE
+
+    RENAME_COLS:
+      TIME_PERIOD: annee 
+      OBS_VALUE: nombre_equipements
+      
+    COLS_TO_KEEP: [
+      annee,
+      code_postal,
+      classification_n1,
+      classification_n2,
+      classification_n3,
+      nombre_equipements
+      ]
+
+      

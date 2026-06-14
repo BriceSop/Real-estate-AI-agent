@@ -556,7 +556,7 @@ class Bpe(Cleaning):
 
         return self
     
-    def join_code_nom(self, code_df: pl.DataFrame, key_col: str) -> "Bpe":
+    def join_code_nom(self, code_df: pl.DataFrame, code_cfg: dict) -> "Bpe":
         """
         Function that join bpe dataframe to obtain the name associated to each code.
 
@@ -564,16 +564,17 @@ class Bpe(Cleaning):
         -------
         code_df : pl.DataFrame
             Dataframe containing code and their associated name.
-        key_col: str
-            Column name used to join the dataframe.
+        code_cfg : dict
+            Dictionary containing convention for the jointure.
         
         Returns
         -------
         self : Bpe
             The same object, with self.df updated.
         """
+        code_df = code_df.rename(code_cfg["RENAME"])
         self.df = self.df.join(code_df,
-                               left_on=[key_col],
+                               left_on=[code_cfg["KEY"]],
                                right_on=["code"],
                                how="left",
                                validate="m:1"
@@ -639,13 +640,13 @@ class Bpe(Cleaning):
 
         # Converting codes columns into names
         logger.info("Jointure des noms de domaines")
-        self.join_code_nom(codes_dom_df,self.bpe_cfg["KEY_DOM_CODES"])
+        self.join_code_nom(codes_dom_df, self.bpe_cfg["DOM_CODES"])
 
         logger.info("Jointure des noms de sous-domaines")
-        self.join_code_nom(codes_sdom_df,self.bpe_cfg["KEY_SDOM_CODES"])
+        self.join_code_nom(codes_sdom_df, self.bpe_cfg["SDOM_CODES"])
 
         logger.info("Jointure des noms de types d'équipements")
-        self.join_code_nom(codes_type_df,self.bpe_cfg["KEY_TYPE_CODES"])
+        self.join_code_nom(codes_type_df, self.bpe_cfg["TYPES_CODES"])
 
         # Creating postal code column
         logger.info("Création d'une colonne code_postal")
