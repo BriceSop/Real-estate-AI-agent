@@ -46,7 +46,7 @@ class Dvf(Cleaning):
             Cleaning configuration.
         """
         super().__init__(df, cfg)
-        self.dvf_cfg = cfg["DVF"]
+        self._cfg = cfg["DVF"]
 
     def remove_header_rows(self) -> "Dvf":
         """
@@ -73,9 +73,9 @@ class Dvf(Cleaning):
         """
         # Casting the right type for each columns
         self.df = self.df.with_columns(
-            pl.col(self.dvf_cfg["DATE_COLS"]).str.to_date("%Y-%m-%d"),
-            pl.col(self.dvf_cfg["INT_COLS"]).cast(pl.Int64),
-            pl.col(self.dvf_cfg["FLOAT_COLS"]).str.replace_all(",", ".").cast(pl.Float64),
+            pl.col(self._cfg["DATE_COLS"]).str.to_date("%Y-%m-%d"),
+            pl.col(self._cfg["INT_COLS"]).cast(pl.Int64),
+            pl.col(self._cfg["FLOAT_COLS"]).str.replace_all(",", ".").cast(pl.Float64),
         )
 
         return self
@@ -138,7 +138,7 @@ class Dvf(Cleaning):
             params["citycode"] = str(citycode)
 
         # API call
-        r = requests.get(self.dvf_cfg["API_URL"], params=params, timeout=10)
+        r = requests.get(self._cfg["API_URL"], params=params, timeout=10)
         r.raise_for_status()
         data = r.json()
 
@@ -364,7 +364,7 @@ class Dvf(Cleaning):
         s = re.sub(r"['’`´\-_/.,;:()]", " ", s)
 
         # Abreviations
-        for mot, abbr in self.dvf_cfg["ABBREVIATIONS"].items():
+        for mot, abbr in self._cfg["ABBREVIATIONS"].items():
             s = re.sub(rf"\b{mot}\b", abbr, s)
 
         # Keeping only letters, numbers, and spaces
@@ -463,7 +463,7 @@ class Dvf(Cleaning):
         self : Dvf
             The same object, with self.df updated.
         """
-        self.df = self.df[self.dvf_cfg["COLS_TO_KEEP"]].unique(maintain_order=True)
+        self.df = self.df[self._cfg["COLS_TO_KEEP"]].unique(maintain_order=True)
 
         return self
     
@@ -532,7 +532,7 @@ class Bpe(Cleaning):
             Cleaning configuration.
         """
         super().__init__(df, cfg)
-        self.bpe_cfg = cfg["BPE"]
+        self._cfg = cfg["BPE"]
 
     def casting_columns_types(self) -> "Bpe":
         """
@@ -545,8 +545,8 @@ class Bpe(Cleaning):
         """
         # Casting the right type for each columns
         self.df = self.df.with_columns(
-            pl.col(self.bpe_cfg["DATE_COLS"]).str.to_date("%Y", strict=True).dt.year().cast(pl.Int64).alias("TIME_PERIOD"),
-            pl.col(self.bpe_cfg["INT_COLS"]).cast(pl.Int64, strict=True)
+            pl.col(self._cfg["DATE_COLS"]).str.to_date("%Y", strict=True).dt.year().cast(pl.Int64).alias("TIME_PERIOD"),
+            pl.col(self._cfg["INT_COLS"]).cast(pl.Int64, strict=True)
         )
 
         return self
@@ -560,7 +560,7 @@ class Bpe(Cleaning):
         self : Bpe
             The same object, with self.df updated.
         """
-        self.df = self.df.filter(pl.col("GEO").is_in(self.bpe_cfg["CODE_ARR"]))
+        self.df = self.df.filter(pl.col("GEO").is_in(self._cfg["CODE_ARR"]))
 
         return self
     
@@ -615,8 +615,8 @@ class Bpe(Cleaning):
         self : Bpe
             The same object, with self.df updated.
         """
-        self.df = self.df.rename(self.bpe_cfg["RENAME_COLS"])
-        self.df = self.df[self.bpe_cfg["COLS_TO_KEEP"]]
+        self.df = self.df.rename(self._cfg["RENAME_COLS"])
+        self.df = self.df[self._cfg["COLS_TO_KEEP"]]
 
     def run_bpe_to_silver(self, codes_dom_df: pl.DataFrame, codes_sdom_df: pl.DataFrame, codes_type_df: pl.DataFrame) -> "Bpe":
         """
@@ -648,13 +648,13 @@ class Bpe(Cleaning):
 
         # Converting codes columns into names
         logger.info("Jointure des noms de domaines")
-        self.join_code_nom(codes_dom_df, self.bpe_cfg["DOM_CODES"])
+        self.join_code_nom(codes_dom_df, self._cfg["DOM_CODES"])
 
         logger.info("Jointure des noms de sous-domaines")
-        self.join_code_nom(codes_sdom_df, self.bpe_cfg["SDOM_CODES"])
+        self.join_code_nom(codes_sdom_df, self._cfg["SDOM_CODES"])
 
         logger.info("Jointure des noms de types d'équipements")
-        self.join_code_nom(codes_type_df, self.bpe_cfg["TYPES_CODES"])
+        self.join_code_nom(codes_type_df, self._cfg["TYPES_CODES"])
 
         # Creating postal code column
         logger.info("Création d'une colonne code_postal")

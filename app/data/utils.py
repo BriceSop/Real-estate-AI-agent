@@ -23,7 +23,7 @@ def load_yaml(filepath: str) -> dict:
     """
     try:
         logger.info("Lecture du fichier yaml : {}", filepath)
-        with open(filepath, "r") as file:
+        with open(filepath, "r", encoding="utf-8") as file:
             config = yaml.safe_load(file)
             logger.debug("Fichier lu avec succès")
             return config
@@ -79,4 +79,31 @@ def load_data_from_csv(dir_name: Path = None, file_name: str = None, sep: str = 
 
     except Exception:
         logger.exception("Erreur lors du chargement du fichier {}", path)
+        raise
+
+def save_data_to_csv(data: pl.DataFrame, dir_path: Path, filename: str):
+    """
+    Function used to save data as a csv file.
+    
+    Arguments
+    ----------
+    data : pl.DataFrame
+        Data to save.
+    dir_path : str
+        Location of the directory used to store the csv file.
+    filename : str
+        Name of the file.
+
+    Raises
+    ------
+    e : Exception
+    """
+    try:
+        path = dir_path / filename
+        logger.info("Sauvegarde des données en fichier CSV : {}", path)
+        data.write_csv(path)
+        logger.debug("{} Data successfully saved at {}", filename, dir_path)
+    
+    except Exception:
+        logger.exception("Erreur lors de la sauvegarde du fichier {}", path)
         raise
