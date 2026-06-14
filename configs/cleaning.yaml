@@ -83,32 +83,35 @@ BPE:
     75120
     ]
 
-    DOM_CODES:
-      RENAME:
-        libelle français: classification_n1
-      KEY: FACILITY_DOM
+  DOM_CODES:
+    FILENAME: codes_FACILITY_DOM_BPE.csv
+    RENAME:
+      libelle français: classification_n1
+    KEY: FACILITY_DOM
 
-    SDOM_CODES:
-      RENAME:
-        libelle français: classification_n2
-      KEY: FACILITY_SDOM
+  SDOM_CODES:
+    FILENAME: codes_FACILITY_SDOM_BPE.csv
+    RENAME:
+      libelle français: classification_n2
+    KEY: FACILITY_SDOM
 
-    TYPES_CODES:
-      RENAME:
-        libelle français: classification_n3
-      KEY: FACILITY_TYPE
+  TYPES_CODES:
+    FILENAME: codes_FACILITY_TYPE_BPE.csv
+    RENAME:
+      libelle français: classification_n3
+    KEY: FACILITY_TYPE
 
-    RENAME_COLS:
-      TIME_PERIOD: annee 
-      OBS_VALUE: nombre_equipements
-      
-    COLS_TO_KEEP: [
-      annee,
-      code_postal,
-      classification_n1,
-      classification_n2,
-      classification_n3,
-      nombre_equipements
-      ]
+  RENAME_COLS:
+    TIME_PERIOD: annee 
+    OBS_VALUE: nombre_equipements
+    
+  COLS_TO_KEEP: [
+    annee,
+    code_postal,
+    classification_n1,
+    classification_n2,
+    classification_n3,
+    nombre_equipements
+    ]
 
       
