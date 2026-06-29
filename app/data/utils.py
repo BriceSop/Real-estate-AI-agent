@@ -32,7 +32,7 @@ def load_yaml(filepath: str) -> dict:
         logger.exception("Erreur lors du chargement du fichier {}", filepath)
         raise
 
-def load_data_from_csv(dir_name: Path = None, file_name: str = None, sep: str = None, utf: bool = True) -> pl.DataFrame:
+def load_data_from_csv(dir_name: Path = None, file_name: str = None, sep: str = None, utf: bool = True, sch: dict = None) -> pl.DataFrame:
     """
     Function used to load data from a csv file.
     
@@ -46,6 +46,8 @@ def load_data_from_csv(dir_name: Path = None, file_name: str = None, sep: str = 
         Separator of the csv file.
     utf : bool
         Indicate the csv is in utf-8 format.
+    sch : dict
+        Contains the data schema.
 
     Raises
     ------
@@ -59,13 +61,23 @@ def load_data_from_csv(dir_name: Path = None, file_name: str = None, sep: str = 
     try:
         path = dir_name / file_name
         if utf:
-            logger.info("Lecture du fichier CSV : {}", path)
-            df = pl.read_csv(path,
-                             separator=sep,
-                             infer_schema_length=0
-                            )
-            logger.debug("Fichier lu avec succès : {} lignes, {} colonnes", df.height, df.width)
-            return df
+            if sch is None:
+                logger.info("Lecture du fichier CSV : {}", path)
+                df = pl.read_csv(path,
+                                separator=sep,
+                                infer_schema_length=0
+                                )
+                logger.debug("Fichier lu avec succès : {} lignes, {} colonnes", df.height, df.width)
+                return df
+            
+            else:
+                logger.info("Lecture du fichier CSV : {}", path)
+                df = pl.read_csv(path,
+                                separator=sep,
+                                schema=sch
+                                )
+                logger.debug("Fichier lu avec succès : {} lignes, {} colonnes", df.height, df.width)
+                return df
         
         else:
             logger.info("Lecture du fichier CSV : {}", path)
