@@ -1,0 +1,114 @@
+TRANSACTIONS:
+  KEY: [id_mutation, numero_disposition]
+
+  PRIX_M2:
+    VF: valeur_fonciere
+    SR: surface_reelle_bati
+    ST: surface_totale
+    NEW_COL: prix_m2
+    JOIN:
+      DROP_COLS: valeur_fonciere
+  
+  TYPE_BIENS:
+    TYPE: type_local
+    NOMBRE: nb_biens
+    TYPE_UNIQUE: type_biens_unique
+    TYPE_PRINC: type_bien_principal
+  
+    FLAG_TYPE_BIENS:
+      has_appartement: [type_biens_unique, Appartement]
+      has_maison: [type_biens_unique, Maison]
+      has_dependance: [type_biens_unique, Dépendance]
+
+    APPT:
+      KEY: Appartement
+      VAL: [Appartement, Dépendance]
+    MAI:
+      KEY: Maison
+      VAL: [Maison, Dépendance]
+    MIX:
+      KEY: Mixte
+      VAL: [Appartement, Maison, Dépendance]
+    CPLX:
+      KEY: Indisponible
+      VAL: Complex
+
+    MARKET_METRICS:
+      KEY: [code_postal, type_bien_principal, annee]
+
+      COUNT:
+        id_mutation: nb_transactions
+      MEAN:
+        prix_m2: prix_m2_mean
+        valeur_fonciere: valeur_fonciere_mean
+        surface_totale: surface_totale_mean
+      MEDIAN:
+        prix_m2: prix_m2_median
+        valeur_fonciere: valeur_fonciere_median
+        surface_totale: surface_totale_median
+      QUANTILE:
+        prix_m2: [0.25, prix_m2_q25]
+        prix_m2: [0.75, prix_m2_q75]
+  
+  COLS_TO_KEEP: [
+    id_mutation,
+    date_mutation,
+    annee,
+    numero_disposition,
+    nature_mutation,
+    valeur_fonciere,
+    prix_m2,
+    adresse_numero,
+    adresse_nom_voie,
+    code_postal,
+    type_local,
+    type_bien_principal,
+    surface_reelle_bati,
+    surface_totale,
+    nombre_pieces_principales,
+    has_appartement,
+    has_maison,
+    has_dependance,
+    is_valeur_fonciere_missing,
+    is_surface_missing,
+    is_nombre_pieces_missing,
+    is_appartement_sans_lot,
+    is_transaction_atypique_agent
+    ]
+
+
+EQUIPEMENTS:
+  COUNT:
+    CN1: classification_n1
+    CN2: classification_n2
+    CN3: classification_n3
+    FIXED_VAL: Total
+    INIT_COL: nombre_equipements
+    NEW_COLS:
+      nb_sante: Santé et action sociale
+      nb_enseignement: Enseignement
+      nb_transports: Transports et déplacements
+      nb_commerces: Commerces
+      nb_sports_loisirs: Sports, loisirs et culture
+    EXCEPTION:
+      nb_services_publics: Services publics
+    
+  KEY: [annee, code_postal]
+
+  EQUIP_COLS: [
+    nb_sante,
+    nb_enseignement,
+    nb_services_publics,
+    nb_transports,
+    nb_commerces,
+    nb_sports_loisirs
+  ]
+
+  SCORE_WEIGHTS:
+    nb_sante: 0.25
+    nb_enseignement: 0.20
+    nb_transports: 0.20
+    nb_commerces: 0.15
+    nb_sports_loisirs: 0.10
+    nb_services_publics: 0.10
+

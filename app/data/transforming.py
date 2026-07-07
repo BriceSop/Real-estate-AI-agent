@@ -5,7 +5,6 @@ class Transforming:
     """
     Transforming pipeline, to pass data quality from silver to gold.
 
-    All transformations are applied in place.
     Treatments are separated considering the source data, using child classes: Transactions and Equipments.
     """
     def __init__(self, df: pl.DataFrame, cfg: dict):
@@ -60,9 +59,14 @@ class Transactions(Transforming):
 
         return self
     
-    def prepare_prix_m2_df(self) -> pl.DataFrame:
+    def prepare_prix_m2_df(self, cfg: dict) -> pl.DataFrame:
         """
         Function that build an intermediate dataframe to get the price per m².
+
+        Arguments
+        -------
+        cfg : dict
+            Configuration dictionary.
 
         Returns
         -------
@@ -71,24 +75,23 @@ class Transactions(Transforming):
         """
         prix_m2_df = (
             self.df
-            .group_by(["id_mutation",
-                       "numero_disposition"], 
+            .group_by(self.cfg["KEY"], 
                        maintain_order=True
             )
-            .agg(pl.col("valeur_fonciere"),
-                 pl.sum("surface_reelle_bati")
-                 .alias("surface_totale")
+            .agg(pl.col(cfg["VF"]),
+                 pl.sum(cfg["SR"])
+                 .alias(cfg["ST"])
             )
-            .with_columns(pl.col("valeur_fonciere")
+            .with_columns(pl.col(cfg["VF"])
                           .list.unique()
                           .list.item()
-                          .alias("valeur_fonciere")
+                          .alias(cfg["VF"])
             )
         )
         
         return prix_m2_df
     
-    def build_prix_m2_column(self, prix_m2_df: pl.DataFrame) -> pl.DataFrame:
+    def build_prix_m2_column(self, prix_m2_df: pl.DataFrame, cfg: dict) -> pl.DataFrame:
         """
         Function that build the price per m² column.
 
@@ -96,6 +99,8 @@ class Transactions(Transforming):
         -------
         prix_m2_df : pl.DataFrame
             Intermediate DataFrame used to create the price per m² column.
+        cfg : dict
+            Configuration dictionary.
 
         Returns
         -------
@@ -103,17 +108,22 @@ class Transactions(Transforming):
             DataFrame containing the price per m² column, ready to be merged.
         """
         df_to_join = prix_m2_df.with_columns(
-            pl.when(pl.col("surface_totale") != 0)
-            .then(pl.col("valeur_fonciere")/pl.col("surface_totale"))
+            pl.when(pl.col(cfg["ST"]) != 0)
+            .then(pl.col(cfg["VF"])/pl.col(cfg["ST"]))
             .otherwise(None)
-            .alias("prix_m2")
+            .alias(cfg["NEW_COL"])
         )
 
         return df_to_join
     
-    def prepare_type_biens_df(self) -> pl.DataFrame:
+    def prepare_type_biens_df(self, cfg: dict) -> pl.DataFrame:
         """
         Function that build an intermediate dataframe to get the principal type of property.
+
+        Arguments
+        -------
+        cfg : dict
+            Configuration dictionary.
 
         Returns
         -------
@@ -122,19 +132,18 @@ class Transactions(Transforming):
         """
         type_biens_df = (
             self.df
-            .group_by(["id_mutation",
-                       "numero_disposition"], 
+            .group_by(self.cfg["KEY"], 
                        maintain_order=True
             )
-            .agg(pl.col("type_local")
+            .agg(pl.col(cfg["TYPE"])
             )
-            .with_columns(pl.col("type_local")
+            .with_columns(pl.col(cfg["TYPE"])
                           .list.len()
-                          .alias("nb_biens")
+                          .alias(cfg["NOMBRE"])
                           ,
-                          pl.col("type_local")
+                          pl.col(cfg["TYPE"])
                           .list.unique()
-                          .alias("type_biens_unique")
+                          .alias(cfg["TYPE_UNIQUE"])
             )
         )
         
@@ -184,36 +193,36 @@ class Transactions(Transforming):
         """
         df = type_biens_df.with_columns(
                 pl.when(
-                    (pl.col("type_biens_unique").list.contains("Appartement")) 
+                    (pl.col(cfg["TYPE_UNIQUE"]).list.contains(cfg["APPT"]["KEY"])) 
                     &
-                    (pl.col("type_biens_unique").list.eval(pl.element().is_in(cfg["APPARTEMENT"])).list.all())
+                    (pl.col(cfg["TYPE_UNIQUE"]).list.eval(pl.element().is_in(cfg["APPT"]["VAL"])).list.all())
 
                 )
                 .then(pl.lit("Appartement"))
 
                 .when(
-                    (pl.col("type_biens_unique").list.contains("Maison"))
+                    (pl.col(cfg["TYPE_UNIQUE"]).list.contains(cfg["MAI"]["KEY"]))
                     &
-                    (pl.col("type_biens_unique").list.eval(pl.element().is_in(cfg["MAISON"])).list.all())
+                    (pl.col(cfg["TYPE_UNIQUE"]).list.eval(pl.element().is_in(cfg["MAI"]["VAL"])).list.all())
                 )
                 .then(pl.lit("Maison"))
 
                 .when(
-                    (pl.col("type_biens_unique").list.contains("Appartement"))
+                    (pl.col(cfg["TYPE_UNIQUE"]).list.contains(cfg["APPT"]["KEY"]))
                     &
-                    (pl.col("type_biens_unique").list.contains("Maison"))
+                    (pl.col(cfg["TYPE_UNIQUE"]).list.contains(cfg["MAI"]["KEY"]))
                     &
-                    (pl.col("type_biens_unique").list.eval(pl.element().is_in(cfg["MIXTE"])).list.all())
+                    (pl.col(cfg["TYPE_UNIQUE"]).list.eval(pl.element().is_in(cfg["MIX"]["VAL"])).list.all())
                 )
                 .then(pl.lit("Mixte"))
 
                 .when(
-                    (pl.col("type_biens_unique").list.contains("Indisponible"))
+                    (pl.col(cfg["TYPE_UNIQUE"]).list.contains(cfg["CPLX"]["KEY"]))
                 )
-                .then(pl.lit("Complex"))
+                .then(pl.lit(cfg["CPLX"]["VAL"]))
 
                 .otherwise(pl.lit("Autre"))
-                .alias("type_bien_principal")
+                .alias(cfg["TYPE_PRINC"])
             )
         
         return df
@@ -263,7 +272,7 @@ class Transactions(Transforming):
         
         return merged_df
     
-    def arrange_transactions_df(self, transaction_df: pl.DataFrame, cfg: dict) -> pl.DataFrame:
+    def arrange_transactions_df(self, transaction_df: pl.DataFrame) -> pl.DataFrame:
         """
         Function that arrange the transaction data into its final format.
 
@@ -271,9 +280,7 @@ class Transactions(Transforming):
         -------
         transaction_df : pl.DataFrame
             Transaction dataframe.
-        cfg : dict
-            Configuration dictionary.
-
+    
         Returns
         -------
         final_df : pl.DataFrame
@@ -289,15 +296,15 @@ class Transactions(Transforming):
         )
 
         # Keeping relevant columns only
-        final_df = final_df[cfg["COLS_TO_KEEP"]]
+        final_df = final_df[self.cfg["COLS_TO_KEEP"]]
 
         #Dropping duplicates
-        final_df = final_df.unique(subset=["id_mutation","numero_disposition"], 
+        final_df = final_df.unique(subset=[self.cfg["KEY"]], 
                                    maintain_order=True)
         
         return final_df
     
-    def build_metrics_df(self, transaction_df: pl.DataFrame) -> pl.DataFrame:
+    def build_metrics_df(self, transaction_df: pl.DataFrame, cfg: dict) -> pl.DataFrame:
         """
         Function that build the market metrics dataframe.
 
@@ -317,14 +324,17 @@ class Transactions(Transforming):
             transaction_df
             .group_by(["code_postal","type_bien_principal","annee"])
             .agg(
-                pl.count("id_mutation").alias("nb_transactions"),
-                pl.mean("prix_m2").alias("prix_m2_mean"),
-                pl.median("prix_m2").alias("prix_m2_median"),
-                pl.quantile("prix_m2", 0.25).alias("prix_m2_q25"),
-                pl.quantile("prix_m2", 0.75).alias("prix_m2_q75"),
-                pl.median("valeur_fonciere").alias("valeur_fonciere_median"),
-                pl.mean("surface_totale").alias("surface_mean"),
-                pl.median("surface_totale").alias("surface_median")
+                (pl.count(col).alias(new_col)
+                 for col, new_col in cfg["COUNT"].items())
+                ,
+                (pl.mean(col).alias(new_col) 
+                 for col, new_col in cfg["MEAN"].items())
+                ,
+                (pl.median(col).alias(new_col)
+                 for col, new_col in cfg["MEDIAN"].items())
+                ,
+                (pl.quantile(col, val[0]).alias(val[1])
+                 for col, val in cfg["QUANTILE"].items())
                 )
             )
 
@@ -351,37 +361,37 @@ class Transactions(Transforming):
 
         # Preparing the dataframe containing price per m²
         logger.info("Préparation du dataframe de prix par m²")
-        prix_m2_df = self.prepare_prix_m2_df()
-        prix_m2_df = self.build_prix_m2_column(prix_m2_df)
+        prix_m2_df = self.prepare_prix_m2_df(self.cfg["PRIX_M2"])
+        prix_m2_df = self.build_prix_m2_column(prix_m2_df, self.cfg["PRIX_M2"])
 
         # Preparing the dataframe containing columns related to the type of property
         logger.info("Préparation du dataframe de type de biens")
-        biens_df = self.prepare_type_biens_df()
-        biens_df = self.create_flag_for_type_biens(biens_df, cfg = self.cfg["FLAG_TYPE_BIENS"])
-        biens_df = self.create_type_bien_princ(biens_df, cfg = self.cfg["BIEN_PRINC"])
+        biens_df = self.prepare_type_biens_df(self.cfg["TYPE_BIENS"])
+        biens_df = self.create_flag_for_type_biens(biens_df, self.cfg["TYPE_BIENS"]["FLAG_TYPE_BIENS"])
+        biens_df = self.create_type_bien_princ(biens_df, self.cfg["TYPE_BIENS"])
 
         # Adding price per m² to the initial data
         logger.info("Jointure pour ajouter la colonne de prix au m²")
-        join_cfg = self.cfg["PRIX_M2_JOIN"]
+        drop_cols = self.cfg["PRIX_M2"]["VF"]
         self.gold_tr = self.join_to_initial_df(self.df, 
-                                               prix_m2_df.drop(join_cfg["DROP_COLS"]), 
-                                               join_cfg["L_KEY"],
-                                               join_cfg["R_KEY"])
+                                               prix_m2_df.drop(drop_cols), 
+                                               self.cfg["KEY"],
+                                               self.cfg["KEY"])
         
         # Adding new columns linked to type of property to the initial data
         logger.info("Jointure pour ajouter les colonnes en lien avec le type de bien")
-        join_cfg = self.cfg["TYPE_BIEN_JOIN"]
+        drop_cols = [self.cfg["TYPE_BIENS"]["TYPE"], self.cfg["TYPE_BIENS"]["TYPE_UNIQUE"]]
         self.gold_tr = self.join_to_initial_df(self.df, 
-                                               biens_df.drop(join_cfg["DROP_COLS"]), 
-                                               join_cfg["L_KEY"],
-                                               join_cfg["R_KEY"])
+                                               biens_df.drop(drop_cols), 
+                                               self.cfg["KEY"],
+                                               self.cfg["KEY"])
         
         logger.info("Construction des dataframes gold issus de Dvf")
         # Building gold transactions data
-        self.gold_tr = self.arrange_transactions_df(self.gold_tr, self.cfg["GOLD_TRANSACTIONS"])
+        self.gold_tr = self.arrange_transactions_df(self.gold_tr)
 
         # Building gold market metrics data
-        self.gold_mm = self.build_metrics_df(self.gold_tr)
+        self.gold_mm = self.build_metrics_df(self.gold_tr, self.cfg["MARKET_METRICS"])
 
         logger.info("Fin de l'upgrade dvf vers gold")
 
@@ -408,7 +418,7 @@ class Equipments(Transforming):
             Transforming configuration.
         """
         super().__init__(df, cfg)
-        self._cfg = cfg["EQUIPMENTS"]
+        self._cfg = cfg["EQUIPEMENTS"]
 
     def create_equipement_count(self, cfg: dict) -> pl.DataFrame:
         """
@@ -425,24 +435,25 @@ class Equipments(Transforming):
             Dataframe containing new columns.
         """
         equipement_df = self.df.with_columns(
-            [pl.when((pl.col("classification_n1") == col[0]) 
+            (pl.when((pl.col(cfg["CN1"]) == val) 
                     &
-                    (pl.col("classification_n2") != cfg["VALUE"])
+                    (pl.col(cfg["CN2"]) != cfg["FIXED_VALUE"])
                     &
-                    (pl.col("classification_n3") != cfg["VALUE"])
+                    (pl.col(cfg["CN3"]) != cfg["FIXED_VALUE"])
                     )
-            .then(pl.col("nombre_equipements"))
+            .then(pl.col(cfg["INIT_COL"]))
             .otherwise(pl.lit(0))
-            .alias(col[1])
-            for col in cfg["COLS"]
-            ],
-            pl.when((pl.col("classification_n2") == cfg["EXCEPT"][0])
+            .alias(col)
+            for col, val in cfg["NEW_COLS"].items())
+            ,
+            (pl.when((pl.col(cfg["CN2"]) == val)
                     &
-                    (pl.col("classification_n3") != cfg["VALUE"])
+                    (pl.col(cfg["CN3"]) != cfg["FIXED_VALUE"])
                     )
-            .then(pl.col("nombre_equipements"))
+            .then(cfg["INIT_COL"])
             .otherwise(pl.lit(0))
-            .alias(cfg["EXCEPT"][1])
+            .alias(col)
+            for col, val in cfg["EXCEPTION"])
         )
 
         return equipement_df
@@ -464,10 +475,10 @@ class Equipments(Transforming):
             Dataframe updated.
         """
         df = (equipement_df
-              .group_by(cfg["GROUP_KEY"])
+              .group_by(cfg["KEY"])
               .agg(
                   pl.sum(col)
-                  for col in cfg["EQUIPEMENT_COLS"]
+                  for col in cfg["EQUIP_COLS"]
                   )
             )
         
@@ -497,19 +508,19 @@ class Equipments(Transforming):
                   )
               .fill_nan(0)
               .alias(f"{col}_score")
-              for col in cfg.keys()
+              for col in cfg["EQUIP_COLS"]
             ])
               .with_columns(
                 (
                     100 * sum(
                         pl.col(f"{col}_score") * weight
-                        for col, weight in cfg.items()
+                        for col, weight in cfg["SCORE_WEIGHTS"].items()
                     )
                 )
                 .round(2)
                 .alias("score_equipements")
             )
-              .drop([f"{col}_score" for col in cfg.keys()])
+              .drop([f"{col}_score" for col in cfg["EQUIP_COLS"]])
         )
 
         return df
@@ -527,12 +538,12 @@ class Equipments(Transforming):
 
          # Creating aggregation columns related to the number of certain types of equipments
          logger.info("Création de colonnes calculant le nombre d'équipement pour certains services")
-         equipement_df = self.create_equipement_count(self.cfg["EQUIPEMENT_COUNT"])
-         equipement_df = self.aggregate_equipement_count(equipement_df, self.cfg["EQUIPEMENT_COUNT"])
+         equipement_df = self.create_equipement_count(self.cfg["COUNT"])
+         equipement_df = self.aggregate_equipement_count(equipement_df, self.cfg)
 
          # Adding an equipment score column
          logger.info("Ajout d'une colonne de score d'équipement")
-         self.gold_lf = self.create_equipement_score(equipement_df, self.cfg["EQUIPEMENT_SCORE"])
+         self.gold_lf = self.create_equipement_score(equipement_df, self.cfg)
 
          logger.info("Fin de l'upgrade bpe vers gold")
 
