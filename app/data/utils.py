@@ -32,7 +32,7 @@ def load_yaml(filepath: str) -> dict:
         logger.exception("Erreur lors du chargement du fichier {}", filepath)
         raise
 
-def load_data_from_csv(dir_name: Path = None, file_name: str = None, sep: str = None, utf: bool = True) -> pl.DataFrame:
+def load_data_from_csv(dir_name: Path = None, file_name: str = None, sep: str = None, utf: bool = True, sch: dict = None) -> pl.DataFrame:
     """
     Function used to load data from a csv file.
     
@@ -46,6 +46,8 @@ def load_data_from_csv(dir_name: Path = None, file_name: str = None, sep: str = 
         Separator of the csv file.
     utf : bool
         Indicate the csv is in utf-8 format.
+    sch : dict
+        Contains the data schema.
 
     Raises
     ------
@@ -59,13 +61,23 @@ def load_data_from_csv(dir_name: Path = None, file_name: str = None, sep: str = 
     try:
         path = dir_name / file_name
         if utf:
-            logger.info("Lecture du fichier CSV : {}", path)
-            df = pl.read_csv(path,
-                             separator=sep,
-                             infer_schema_length=0
-                            )
-            logger.debug("Fichier lu avec succès : {} lignes, {} colonnes", df.height, df.width)
-            return df
+            if sch is None:
+                logger.info("Lecture du fichier CSV : {}", path)
+                df = pl.read_csv(path,
+                                separator=sep,
+                                infer_schema_length=0
+                                )
+                logger.debug("Fichier lu avec succès : {} lignes, {} colonnes", df.height, df.width)
+                return df
+            
+            else:
+                logger.info("Lecture du fichier CSV : {}", path)
+                df = pl.read_csv(path,
+                                separator=sep,
+                                schema=sch
+                                )
+                logger.debug("Fichier lu avec succès : {} lignes, {} colonnes", df.height, df.width)
+                return df
         
         else:
             logger.info("Lecture du fichier CSV : {}", path)
@@ -107,3 +119,45 @@ def save_data_to_csv(data: pl.DataFrame, dir_path: Path, filename: str):
     except Exception:
         logger.exception("Erreur lors de la sauvegarde du fichier {}", path)
         raise
+
+def build_polars_schema(schema_config: dict[str, str]) -> pl.Schema:
+    """
+    Function used to create a data schema compatible with polars.
+    
+    Arguments
+    ----------
+    schema_config : dict
+        Schema configuration to apply.
+
+    Return
+    ------
+    pl.Schema
+    """
+    POLARS_DTYPES = {
+    "String": pl.String,
+    "Int8": pl.Int8,
+    "Int16": pl.Int16,
+    "Int32": pl.Int32,
+    "Int64": pl.Int64,
+    "Float32": pl.Float32,
+    "Float64": pl.Float64,
+    "Boolean": pl.Boolean,
+    "Date": pl.Date,
+    "Datetime": pl.Datetime,
+    }
+
+    unknown_types = {
+        dtype
+        for dtype in schema_config.values()
+        if dtype not in POLARS_DTYPES
+    }
+
+    if unknown_types:
+        raise ValueError(
+            f"Types Polars non supportés dans le YAML : {unknown_types}"
+        )
+
+    return pl.Schema({
+        column: POLARS_DTYPES[dtype]
+        for column, dtype in schema_config.items()
+    })

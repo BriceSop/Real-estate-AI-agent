@@ -43,14 +43,25 @@ DVF:
     code_commune,
     nom_commune,
     code_departement,
+<<<<<<< HEAD
     nombre_lots,
+=======
+>>>>>>> dev
     type_local,
     surface_reelle_bati, 
     nombre_pieces_principales, 
     address_inferred_from_coords, 
     is_valeur_fonciere_missing, 
     is_surface_missing, 
+<<<<<<< HEAD
     is_nombre_pieces_missing
+=======
+    is_nombre_pieces_missing,
+    is_surface_tres_faible,
+    is_valeur_fonciere_tres_basse,
+    is_appartement_sans_lot,
+    is_transaction_atypique_agent
+>>>>>>> dev
     ]
   
   SILVER_FILE: dvf_silver.csv
