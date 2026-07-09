@@ -75,7 +75,7 @@ class Transactions(Transforming):
         """
         prix_m2_df = (
             self.df
-            .group_by(self.cfg["KEY"], 
+            .group_by(self._cfg["KEY"], 
                        maintain_order=True
             )
             .agg(pl.col(cfg["VF"]),
@@ -132,7 +132,7 @@ class Transactions(Transforming):
         """
         type_biens_df = (
             self.df
-            .group_by(self.cfg["KEY"], 
+            .group_by(self._cfg["KEY"], 
                        maintain_order=True
             )
             .agg(pl.col(cfg["TYPE"])
@@ -296,10 +296,10 @@ class Transactions(Transforming):
         )
 
         # Keeping relevant columns only
-        final_df = final_df[self.cfg["COLS_TO_KEEP"]]
+        final_df = final_df[self._cfg["COLS_TO_KEEP"]]
 
         #Dropping duplicates
-        final_df = final_df.unique(subset=[self.cfg["KEY"]], 
+        final_df = final_df.unique(subset=self._cfg["KEY"], 
                                    maintain_order=True)
         
         return final_df
@@ -324,17 +324,17 @@ class Transactions(Transforming):
             transaction_df
             .group_by(["code_postal","type_bien_principal","annee"])
             .agg(
-                (pl.count(col).alias(new_col)
-                 for col, new_col in cfg["COUNT"].items())
+                *[pl.count(col).alias(new_col)
+                 for col, new_col in cfg["COUNT"].items()]
                 ,
-                (pl.mean(col).alias(new_col) 
-                 for col, new_col in cfg["MEAN"].items())
+                *[pl.mean(col).alias(new_col) 
+                 for col, new_col in cfg["MEAN"].items()]
                 ,
-                (pl.median(col).alias(new_col)
-                 for col, new_col in cfg["MEDIAN"].items())
+                *[pl.median(col).alias(new_col)
+                 for col, new_col in cfg["MEDIAN"].items()]
                 ,
-                (pl.quantile(col, val[0]).alias(val[1])
-                 for col, val in cfg["QUANTILE"].items())
+                *[pl.quantile(val[1], val[0]).alias(new_col)
+                 for new_col, val in cfg["QUANTILE"].items()]
                 )
             )
 
@@ -361,37 +361,37 @@ class Transactions(Transforming):
 
         # Preparing the dataframe containing price per m²
         logger.info("Préparation du dataframe de prix par m²")
-        prix_m2_df = self.prepare_prix_m2_df(self.cfg["PRIX_M2"])
-        prix_m2_df = self.build_prix_m2_column(prix_m2_df, self.cfg["PRIX_M2"])
+        prix_m2_df = self.prepare_prix_m2_df(self._cfg["PRIX_M2"])
+        prix_m2_df = self.build_prix_m2_column(prix_m2_df, self._cfg["PRIX_M2"])
 
         # Preparing the dataframe containing columns related to the type of property
         logger.info("Préparation du dataframe de type de biens")
-        biens_df = self.prepare_type_biens_df(self.cfg["TYPE_BIENS"])
-        biens_df = self.create_flag_for_type_biens(biens_df, self.cfg["TYPE_BIENS"]["FLAG_TYPE_BIENS"])
-        biens_df = self.create_type_bien_princ(biens_df, self.cfg["TYPE_BIENS"])
+        biens_df = self.prepare_type_biens_df(self._cfg["TYPE_BIENS"])
+        biens_df = self.create_flag_for_type_biens(biens_df, self._cfg["TYPE_BIENS"]["FLAG_TYPE_BIENS"])
+        biens_df = self.create_type_bien_princ(biens_df, self._cfg["TYPE_BIENS"])
 
         # Adding price per m² to the initial data
         logger.info("Jointure pour ajouter la colonne de prix au m²")
-        drop_cols = self.cfg["PRIX_M2"]["VF"]
+        drop_cols = self._cfg["PRIX_M2"]["VF"]
         self.gold_tr = self.join_to_initial_df(self.df, 
                                                prix_m2_df.drop(drop_cols), 
-                                               self.cfg["KEY"],
-                                               self.cfg["KEY"])
+                                               self._cfg["KEY"],
+                                               self._cfg["KEY"])
         
         # Adding new columns linked to type of property to the initial data
         logger.info("Jointure pour ajouter les colonnes en lien avec le type de bien")
-        drop_cols = [self.cfg["TYPE_BIENS"]["TYPE"], self.cfg["TYPE_BIENS"]["TYPE_UNIQUE"]]
-        self.gold_tr = self.join_to_initial_df(self.df, 
+        drop_cols = [self._cfg["TYPE_BIENS"]["TYPE"], self._cfg["TYPE_BIENS"]["TYPE_UNIQUE"]]
+        self.gold_tr = self.join_to_initial_df(self.gold_tr, 
                                                biens_df.drop(drop_cols), 
-                                               self.cfg["KEY"],
-                                               self.cfg["KEY"])
+                                               self._cfg["KEY"],
+                                               self._cfg["KEY"])
         
         logger.info("Construction des dataframes gold issus de Dvf")
         # Building gold transactions data
         self.gold_tr = self.arrange_transactions_df(self.gold_tr)
 
         # Building gold market metrics data
-        self.gold_mm = self.build_metrics_df(self.gold_tr, self.cfg["MARKET_METRICS"])
+        self.gold_mm = self.build_metrics_df(self.gold_tr, self._cfg["MARKET_METRICS"])
 
         logger.info("Fin de l'upgrade dvf vers gold")
 
@@ -435,25 +435,25 @@ class Equipments(Transforming):
             Dataframe containing new columns.
         """
         equipement_df = self.df.with_columns(
-            (pl.when((pl.col(cfg["CN1"]) == val) 
+            *[pl.when((pl.col(cfg["CN1"]) == val) 
                     &
-                    (pl.col(cfg["CN2"]) != cfg["FIXED_VALUE"])
+                    (pl.col(cfg["CN2"]) != cfg["FIXED_VAL"])
                     &
-                    (pl.col(cfg["CN3"]) != cfg["FIXED_VALUE"])
+                    (pl.col(cfg["CN3"]) != cfg["FIXED_VAL"])
                     )
             .then(pl.col(cfg["INIT_COL"]))
             .otherwise(pl.lit(0))
             .alias(col)
-            for col, val in cfg["NEW_COLS"].items())
+            for col, val in cfg["NEW_COLS"].items()]
             ,
-            (pl.when((pl.col(cfg["CN2"]) == val)
+            *[pl.when((pl.col(cfg["CN2"]) == val)
                     &
-                    (pl.col(cfg["CN3"]) != cfg["FIXED_VALUE"])
+                    (pl.col(cfg["CN3"]) != cfg["FIXED_VAL"])
                     )
             .then(cfg["INIT_COL"])
             .otherwise(pl.lit(0))
             .alias(col)
-            for col, val in cfg["EXCEPTION"])
+            for col, val in cfg["EXCEPTION"].items()]
         )
 
         return equipement_df
@@ -525,7 +525,7 @@ class Equipments(Transforming):
 
         return df
     
-    def buils_gold_equipement_df(self) -> pl.DataFrame:
+    def build_gold_equipement_df(self) -> pl.DataFrame:
          """
         Function that build the gold dataframe based on the Bpe transactions.
 
@@ -538,12 +538,12 @@ class Equipments(Transforming):
 
          # Creating aggregation columns related to the number of certain types of equipments
          logger.info("Création de colonnes calculant le nombre d'équipement pour certains services")
-         equipement_df = self.create_equipement_count(self.cfg["COUNT"])
-         equipement_df = self.aggregate_equipement_count(equipement_df, self.cfg)
+         equipement_df = self.create_equipement_count(self._cfg["COUNT"])
+         equipement_df = self.aggregate_equipement_count(equipement_df, self._cfg)
 
          # Adding an equipment score column
          logger.info("Ajout d'une colonne de score d'équipement")
-         self.gold_lf = self.create_equipement_score(equipement_df, self.cfg)
+         self.gold_lf = self.create_equipement_score(equipement_df, self._cfg)
 
          logger.info("Fin de l'upgrade bpe vers gold")
 

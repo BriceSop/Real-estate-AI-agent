@@ -1,4 +1,30 @@
 TRANSACTIONS:
+  SILVER_FILE: dvf_silver.csv
+
+  SCHEMA: 
+    id_mutation: String
+    date_mutation: String
+    numero_disposition: Int64
+    nature_mutation: String
+    valeur_fonciere: Float64
+    adresse_numero: String
+    adresse_nom_voie: String
+    code_postal: String
+    code_commune: String
+    nom_commune: String
+    code_departement: String
+    type_local: String
+    surface_reelle_bati: Float64
+    nombre_pieces_principales: Int64
+    address_inferred_from_coords: String
+    is_valeur_fonciere_missing: Boolean
+    is_surface_missing: Boolean
+    is_nombre_pieces_missing: Boolean
+    is_surface_tres_faible: Boolean
+    is_valeur_fonciere_tres_basse: Boolean
+    is_appartement_sans_lot: Boolean
+    is_transaction_atypique_agent: Boolean
+
   KEY: [id_mutation, numero_disposition]
 
   PRIX_M2:
@@ -33,22 +59,22 @@ TRANSACTIONS:
       KEY: Indisponible
       VAL: Complex
 
-    MARKET_METRICS:
-      KEY: [code_postal, type_bien_principal, annee]
+  MARKET_METRICS:
+    KEY: [code_postal, type_bien_principal, annee]
 
-      COUNT:
-        id_mutation: nb_transactions
-      MEAN:
-        prix_m2: prix_m2_mean
-        valeur_fonciere: valeur_fonciere_mean
-        surface_totale: surface_totale_mean
-      MEDIAN:
-        prix_m2: prix_m2_median
-        valeur_fonciere: valeur_fonciere_median
-        surface_totale: surface_totale_median
-      QUANTILE:
-        prix_m2: [0.25, prix_m2_q25]
-        prix_m2: [0.75, prix_m2_q75]
+    COUNT:
+      id_mutation: nb_transactions
+    MEAN:
+      prix_m2: prix_m2_mean
+      valeur_fonciere: valeur_fonciere_mean
+      surface_totale: surface_totale_mean
+    MEDIAN:
+      prix_m2: prix_m2_median
+      valeur_fonciere: valeur_fonciere_median
+      surface_totale: surface_totale_median
+    QUANTILE:
+      prix_m2_q25: [0.25, prix_m2]
+      prix_m2_q75: [0.75, prix_m2]
   
   COLS_TO_KEEP: [
     id_mutation,
@@ -75,9 +101,23 @@ TRANSACTIONS:
     is_appartement_sans_lot,
     is_transaction_atypique_agent
     ]
+  
+  GOLD_FILE_TR: transactions.csv
+
+  GOLD_FILE_MM: market_metrics.csv
 
 
 EQUIPEMENTS:
+  SILVER_FILE: bpe_silver.csv
+
+  SCHEMA:
+    annee: Int64
+    code_postal: String
+    classification_n1: String 
+    classification_n2: String
+    classification_n3: String
+    nombre_equipements: Int64
+
   COUNT:
     CN1: classification_n1
     CN2: classification_n2
@@ -112,3 +152,4 @@ EQUIPEMENTS:
     nb_sports_loisirs: 0.10
     nb_services_publics: 0.10
 
+  GOLD_FILE_LF: location_features.csv

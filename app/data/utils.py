@@ -119,3 +119,45 @@ def save_data_to_csv(data: pl.DataFrame, dir_path: Path, filename: str):
     except Exception:
         logger.exception("Erreur lors de la sauvegarde du fichier {}", path)
         raise
+
+def build_polars_schema(schema_config: dict[str, str]) -> pl.Schema:
+    """
+    Function used to create a data schema compatible with polars.
+    
+    Arguments
+    ----------
+    schema_config : dict
+        Schema configuration to apply.
+
+    Return
+    ------
+    pl.Schema
+    """
+    POLARS_DTYPES = {
+    "String": pl.String,
+    "Int8": pl.Int8,
+    "Int16": pl.Int16,
+    "Int32": pl.Int32,
+    "Int64": pl.Int64,
+    "Float32": pl.Float32,
+    "Float64": pl.Float64,
+    "Boolean": pl.Boolean,
+    "Date": pl.Date,
+    "Datetime": pl.Datetime,
+    }
+
+    unknown_types = {
+        dtype
+        for dtype in schema_config.values()
+        if dtype not in POLARS_DTYPES
+    }
+
+    if unknown_types:
+        raise ValueError(
+            f"Types Polars non supportés dans le YAML : {unknown_types}"
+        )
+
+    return pl.Schema({
+        column: POLARS_DTYPES[dtype]
+        for column, dtype in schema_config.items()
+    })
