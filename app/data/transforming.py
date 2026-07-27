@@ -483,6 +483,31 @@ class Equipments(Transforming):
             )
         
         return df
+
+    def create_surface_column(self, equipement_df: pl.DataFrame, cfg: dict):
+        """
+        Function that integrate a column compiling the surface of each postal code in km2.
+
+        Arguments
+        ---------
+        equipement_df : pl.DataFrame
+            Equipment dataframe.
+        cfg : dict
+            Configuration dictionary.
+
+        Returns
+        -------
+        df : pl.DataFrame
+            Dataframe with a km2 surface column.
+        """
+        surface_df = pl.DataFrame(cfg["SURFACE_DATA"])
+
+        df = equipement_df.join(surface_df,
+                                on="code_postal",
+                                how="left")
+
+        return df
+
     
     def create_equipement_score(self, equipement_df: pl.DataFrame, cfg: dict) -> pl.DataFrame:
         """
@@ -502,9 +527,17 @@ class Equipments(Transforming):
         """
         df = (equipement_df
               .with_columns([
+                      (
+                          pl.col(col) / pl.col("surface_km2")
+                      )
+                      .log1p()
+                      .alias(f"{col}_densite_log")
+                      for col in cfg["EQUIP_COLS"]
+            ])
+              .with_columns([
                   (
-                      (pl.col(col) - pl.col(col).min().over("annee"))
-                      / (pl.col(col).max().over("annee") - pl.col(col).min().over("annee"))
+                      (pl.col(f"{col}_densite_log") - pl.col(f"{col}_densite_log").min().over("annee"))
+                      / (pl.col(f"{col}_densite_log").max().over("annee") - pl.col(f"{col}_densite_log").min().over("annee"))
                   )
               .fill_nan(0)
               .alias(f"{col}_score")
@@ -520,6 +553,7 @@ class Equipments(Transforming):
                 .round(2)
                 .alias("score_equipements")
             )
+              .drop([f"{col}_densite_log" for col in cfg["EQUIP_COLS"]])
               .drop([f"{col}_score" for col in cfg["EQUIP_COLS"]])
         )
 
@@ -541,6 +575,10 @@ class Equipments(Transforming):
          equipement_df = self.create_equipement_count(self._cfg["COUNT"])
          equipement_df = self.aggregate_equipement_count(equipement_df, self._cfg)
 
+         # Adding a surface column (in km²)
+         logger.info("Ajout d'une colonne de surface en km²")
+         equipement_df = self.create_surface_column(equipement_df, self._cfg)
+        
          # Adding an equipment score column
          logger.info("Ajout d'une colonne de score d'équipement")
          self.gold_lf = self.create_equipement_score(equipement_df, self._cfg)

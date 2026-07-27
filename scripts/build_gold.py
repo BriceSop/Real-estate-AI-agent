@@ -1,7 +1,12 @@
-from app.core.paths import CONFIGS_DIR, GOLD_DIR, SILVER_DIR
 from app.core.logging import setup_logging
-from app.data.utils import build_polars_schema, load_yaml, load_data_from_csv, save_data_to_csv
-from app.data.transforming import Transactions, Equipments
+from app.core.paths import CONFIGS_DIR, GOLD_DIR, SILVER_DIR
+from app.data.transforming import Equipments, Transactions
+from app.data.utils import (
+                            build_polars_schema,
+                            load_data_from_csv,
+                            load_yaml,
+                            save_data_to_csv,
+)
 
 setup_logging()
 
