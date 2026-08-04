@@ -1,4 +1,5 @@
 import duckdb
+
 from app.core.paths import LOCAL_DIR
 
 connection = duckdb.connect(LOCAL_DIR / "analytics.duckdb")
