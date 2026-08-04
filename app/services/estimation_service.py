@@ -1,7 +1,9 @@
 from datetime import date
+
 from dateutil.relativedelta import relativedelta
 
 from app.data.repositories.transaction_repository import TransactionRepository
+
 
 class EstimationService:
     """
