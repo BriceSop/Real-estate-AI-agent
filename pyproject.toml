@@ -19,4 +19,5 @@ dependencies = [
     "pytest>=9.1.0",
     "pyyaml>=6.0.3",
     "requests>=2.33.1",
+    "streamlit>=1.59.1",
 ]
