@@ -57,7 +57,23 @@ def ask_agent(
     """Send a question to the real estate Agent."""
 
     try:
-        result = agent.invoke({"input": payload.message})
+        print("\n--- REQUEST RECEIVED ---")
+        print("MESSAGE:", payload.message)
+        result = agent.invoke(
+            {
+                "messages": [
+                    {
+                        "role": "user",
+                        "content": payload.message
+                    }
+                ]
+            }
+        )
+
+        print("\n--- RAW AGENT RESULT ---")
+        print(result)
+        print("------------------------\n")
+
         answer = extract_answer(result)
 
         return ChatResponse(answer=answer)
